@@ -1,57 +1,61 @@
+import os
 from settings import *
 
 
 class Maze:
     def __init__(self):
         self.map = []
-        with open("bin/maps/the_diary_of_Jane.txt") as f:
-            for _ in f:
-                self.map.append(list(_.strip()))
+        map_path = "bin/maps/the_diary_of_Jane.txt"
 
-    def draw(self, screen, pygame):
-        for y,r in enumerate(self.map):
-            for x,t in enumerate(r):
-                rect = pygame.Rect(
-                    x*T_SIZE,
-                    y*T_SIZE,
+        if os.path.exists(map_path):
+            with open(map_path) as f:
+                for line in f:
+                    stripped = line.strip()
+                    if stripped:
+                        self.map.append(list(stripped))
+
+    def draw(self, screen, pygame_module):
+        for y, row in enumerate(self.map):
+            for x, tile in enumerate(row):
+                rect = pygame_module.Rect(
+                    x * T_SIZE,
+                    y * T_SIZE,
                     T_SIZE,
                     T_SIZE
                 )
-                if t == "#":
-                    pygame.draw.rect(screen,BL,rect)
-                elif t == ".":
-                    pygame.draw.circle(
+                if tile == "#":
+                    pygame_module.draw.rect(screen, (10, 25, 100), rect)
+                    pygame_module.draw.rect(screen, (30, 80, 250), rect, 1)
+                elif tile == ".":
+                    pygame_module.draw.circle(
                         screen,
                         WH,
                         rect.center,
                         3
                     )
-                elif t == "o":
-                    pygame.draw.circle(
+                elif tile == "o":
+                    pygame_module.draw.circle(
                         screen,
                         WH,
                         rect.center,
-                        7
+                        6
                     )
 
-    def walls(self, x, y):
-        if x < 0:
+    def is_free(self, col, row):
+        if row < 0 or row >= len(self.map):
             return False
-        if x >= len(self.map):
+        if col < 0 or col >= len(self.map[row]):
             return False
-        if y < 0:
-            return False
-        if y >= len(self.map[x]):
-            return False
-        return self.map[x][y] != "#"
+        return self.map[row][col] != "#"
 
-    def eat(self, x, y):
-        col = x
-        row = y
-        if self.map[row][col] == ".":
+    def eat(self, col, row):
+        if row < 0 or row >= len(self.map) or col < 0 or col >= len(self.map[row]):
+            return 0
+        tile = self.map[row][col]
+        if tile == ".":
             self.map[row][col] = " "
             return 10
-        if self.map[row][col] == "o":
+        elif tile == "o":
             self.map[row][col] = " "
             return 50
         return 0
