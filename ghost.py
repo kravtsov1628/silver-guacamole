@@ -1,38 +1,55 @@
 import random
 import pygame
-from settings import *
+from settings import T_SIZE
+
+
+DIRECTIONS = [
+    (0, -1),
+    (0, 1),
+    (-1, 0),
+    (1, 0)
+]
 
 
 class Ghost:
-    def __init__(self, x, y, color):
-        self.x = x
-        self.y = y
-        self.dx = G_SPEED
-        self.dy = 0
+    def __init__(self, row, col, color):
+        self.row = row
+        self.col = col
+        self.direction = random.choice(DIRECTIONS)
         self.color = color
 
     def update(self, maze):
-        new_x = self.x + self.dx
-        new_y = self.y + self.dy
-        if not maze.walls(new_x, new_y):
-            self.x = new_x
-            self.y = new_y
-        else:
-            self.change_direction()
+        dr, dc = self.direction
+        next_row = self.row + dr
+        next_col = self.col + dc
+        if not maze.is_free(next_col, next_row):
+            self.choose_direction(maze)
+            dr, dc = self.direction
+            next_row = self.row + dr
+            next_col = self.col + dc
 
-    def change_direction(self):
-        dirs = [
-            (G_SPEED,0),
-            (-G_SPEED,0),
-            (0,G_SPEED),
-            (0,-G_SPEED)
-        ]
-        self.dx,self.dy = random.choice(dirs)
+        if maze.is_free(next_col, next_row):
+            self.row = next_row
+            self.col = next_col
 
-    def draw(self,screen):
+    def choose_direction(self, maze):
+        possible = []
+        for dr, dc in DIRECTIONS:
+            nr = self.row + dr
+            nc = self.col + dc
+            if maze.is_free(nc, nr):
+                possible.append((dr, dc))
+        reverse = (-self.direction[0], -self.direction[1])
+        if reverse in possible and len(possible) > 1:
+            possible.remove(reverse)
+        self.direction = random.choice(possible)
+
+    def draw(self, screen):
+        x = self.col * T_SIZE + T_SIZE // 2
+        y = self.row * T_SIZE + T_SIZE // 2
         pygame.draw.circle(
             screen,
             self.color,
-            (int(self.x),int(self.y)),
-            12
+            (x, y),
+            T_SIZE // 2 - 3
         )
