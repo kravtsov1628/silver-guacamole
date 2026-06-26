@@ -5,6 +5,75 @@ from player import Player
 from ghost import Ghost
 from settings import *
 
+FONT_BITMAPS = {
+    'A': [0b01110, 0b10001, 0b11111, 0b10001, 0b10001],
+    'B': [0b11110, 0b10001, 0b11110, 0b10001, 0b11110],
+    'C': [0b01111, 0b10000, 0b10000, 0b10000, 0b01111],
+    'D': [0b11100, 0b10010, 0b10010, 0b10010, 0b11100],
+    'E': [0b11111, 0b10000, 0b11110, 0b10000, 0b11111],
+    'F': [0b11111, 0b10000, 0b11110, 0b10000, 0b10000],
+    'G': [0b01111, 0b10000, 0b10111, 0b10001, 0b01111],
+    'H': [0b10001, 0b10001, 0b11111, 0b10001, 0b10001],
+    'I': [0b01110, 0b00100, 0b00100, 0b00100, 0b01110],
+    'J': [0b00111, 0b00010, 0b00010, 0b10010, 0b01100],
+    'K': [0b10001, 0b10010, 0b11100, 0b10010, 0b10001],
+    'L': [0b10000, 0b10000, 0b10000, 0b10000, 0b11111],
+    'M': [0b10001, 0b11011, 0b10101, 0b10001, 0b10001],
+    'N': [0b10001, 0b11001, 0b10101, 0b10011, 0b10001],
+    'O': [0b01110, 0b10001, 0b10001, 0b10001, 0b01110],
+    'P': [0b11110, 0b10001, 0b11110, 0b10000, 0b10000],
+    'Q': [0b01110, 0b10001, 0b10101, 0b10010, 0b01101],
+    'R': [0b11110, 0b10001, 0b11110, 0b10010, 0b10001],
+    'S': [0b01111, 0b10000, 0b01110, 0b00001, 0b11110],
+    'T': [0b11111, 0b00100, 0b00100, 0b00100, 0b00100],
+    'U': [0b10001, 0b10001, 0b10001, 0b10001, 0b01110],
+    'V': [0b10001, 0b10001, 0b01010, 0b01010, 0b00100],
+    'W': [0b10001, 0b10001, 0b10101, 0b11011, 0b10001],
+    'X': [0b10001, 0b01010, 0b00100, 0b01010, 0b10001],
+    'Y': [0b10001, 0b01010, 0b00100, 0b00100, 0b00100],
+    'Z': [0b11111, 0b00010, 0b00100, 0b01000, 0b11111],
+    '0': [0b01110, 0b10011, 0b10101, 0b11001, 0b01110],
+    '1': [0b00100, 0b01100, 0b00100, 0b00100, 0b01110],
+    '2': [0b11110, 0b00001, 0b01110, 0b10000, 0b11111],
+    '3': [0b11111, 0b00010, 0b01110, 0b00001, 0b11110],
+    '4': [0b10001, 0b10001, 0b11111, 0b00001, 0b00001],
+    '5': [0b11111, 0b10000, 0b11110, 0b00001, 0b11110],
+    '6': [0b01111, 0b10000, 0b11110, 0b10001, 0b01110],
+    '7': [0b11111, 0b00001, 0b00010, 0b00100, 0b00100],
+    '8': [0b01110, 0b10001, 0b01110, 0b10001, 0b01110],
+    '9': [0b01110, 0b10001, 0b01111, 0b00001, 0b11110],
+    ' ': [0b00000, 0b00000, 0b00000, 0b00000, 0b00000],
+    ':': [0b00000, 0b01100, 0b00000, 0b01100, 0b00000],
+    '!': [0b00100, 0b00100, 0b00100, 0b00000, 0b00100],
+    '-': [0b00000, 0b00000, 0b11110, 0b00000, 0b00000],
+    '/': [0b00001, 0b00010, 0b00100, 0b01000, 0b10000],
+}
+
+def draw_pixel_text(screen, text, x, y, scale=2, color=(255, 255, 255)):
+    text = str(text).upper()
+    char_w = 5 * scale
+    spacing = 1 * scale
+    total_w = len(text) * char_w + (len(text) - 1) * spacing
+    start_x = x - total_w // 2
+
+    current_x = start_x
+    for char in text:
+        bitmap = FONT_BITMAPS.get(char, FONT_BITMAPS[' '])
+        for r_idx, row in enumerate(bitmap):
+            for c_idx in range(5):
+                if (row >> (4 - c_idx)) & 1:
+                    pygame.draw.rect(
+                        screen,
+                        color,
+                        (
+                            current_x + c_idx * scale,
+                            y + r_idx * scale,
+                            scale,
+                            scale
+                        )
+                    )
+        current_x += char_w + spacing
+
 
 class Game:
     def __init__(self, sfx_manager):
@@ -27,6 +96,8 @@ class Game:
         self.sfx.play_start()
         self.bgm_start_time = pygame.time.get_ticks() + 850
         self.bgm_started = False
+        self.select_pressed_last = False
+        self.select_press_count = 0
 
     def pellets_remaining(self):
         count = 0
@@ -41,6 +112,15 @@ class Game:
         if not self.bgm_started and pygame.time.get_ticks() >= self.bgm_start_time:
             self.sfx.start_bgm()
             self.bgm_started = True
+
+        select_currently_pressed = script.pressed("SELECT")
+        if select_currently_pressed and not self.select_pressed_last:
+            self.select_press_count += 1
+            if self.select_press_count >= 3:
+                self.ghosts = []
+                self.sfx.play_power_eat()
+                self.select_press_count = 0
+        self.select_pressed_last = select_currently_pressed
 
         if self.game_over or self.game_won:
             if script.pressed("START"):
@@ -63,6 +143,7 @@ class Game:
         if self.player.state in ("alive", "respawning"):
             for ghost in self.ghosts:
                 ghost.update(self.maze)
+
             if self.player.state == "alive":
                 for ghost in self.ghosts:
                     if ghost.row == self.player.row and ghost.col == self.player.col:
@@ -74,7 +155,7 @@ class Game:
             if self.game_over:
                 pygame.display.set_caption(f"Pacman - GAME OVER | SCORE: {self.player.score}")
             elif self.game_won:
-                pygame.display.set_caption(f"Pacman - VICTORY! | SCORE: {self.player.score}")
+                pygame.display.set_caption(f"Pacman - VICTORY WW! | SCORE: {self.player.score}")
             else:
                 pygame.display.set_caption(
                     f"Pacman - SCORE: {self.player.score} | LIVES: {self.player.lives}")
@@ -90,30 +171,37 @@ class Game:
 
         if self.game_over:
             screen.fill((0, 0, 0))
-            text_go = safe_render("GAME OVER", 48, (239, 68, 68))
+            text_go = safe_render("GAME OVER", 48, (255, 255, 255))
             text_score = safe_render(f"SCORE: {self.player.score}", 24, (255, 255, 255))
-            text_restart = safe_render("Press START / ENTER to restart", 24, (100, 116, 139))
+            text_restart = safe_render("PRESS START / ENTER TO RESTART", 24, (255, 255, 255))
 
             if text_go and text_score and text_restart:
                 screen.blit(text_go, (W // 2 - text_go.get_width() // 2, H // 2 - 40))
                 screen.blit(text_score, (W // 2 - text_score.get_width() // 2, H // 2 + 10))
                 screen.blit(text_restart, (W // 2 - text_restart.get_width() // 2, H // 2 + 60))
             else:
-                pygame.draw.rect(screen, (239, 68, 68), (W // 2 - 100, H // 2 - 30, 200, 60), 2)
+                draw_pixel_text(screen, "GAME OVER", W // 2, H // 2 - 40, scale=4, color=(255, 255, 255))
+                draw_pixel_text(screen, f"SCORE: {self.player.score}", W // 2, H // 2 + 10, scale=2,
+                                color=(255, 255, 255))
+                draw_pixel_text(screen, "PRESS START TO RESTART", W // 2, H // 2 + 50, scale=1, color=(255, 255, 255))
             return
 
         if self.game_won:
             screen.fill((0, 0, 0))
-            text_vic = safe_render("VICTORY WW", 48, (34, 197, 94))
+            text_vic = safe_render("VICTORY WW", 48, (255, 255, 255))
             text_score = safe_render(f"SCORE: {self.player.score}", 24, (255, 255, 255))
-            text_restart = safe_render("Press START / ENTER to play again", 24, (100, 116, 139))
+            text_restart = safe_render("PRESS START TO PLAY AGAIN", 24, (255, 255, 255))
 
             if text_vic and text_score and text_restart:
                 screen.blit(text_vic, (W // 2 - text_vic.get_width() // 2, H // 2 - 40))
                 screen.blit(text_score, (W // 2 - text_score.get_width() // 2, H // 2 + 10))
                 screen.blit(text_restart, (W // 2 - text_restart.get_width() // 2, H // 2 + 60))
             else:
-                pygame.draw.rect(screen, (34, 197, 94), (W // 2 - 100, H // 2 - 30, 200, 60), 2)
+                draw_pixel_text(screen, "VICTORY WW", W // 2, H // 2 - 40, scale=4, color=(255, 255, 255))
+                draw_pixel_text(screen, f"SCORE: {self.player.score}", W // 2, H // 2 + 10, scale=2,
+                                color=(255, 255, 255))
+                draw_pixel_text(screen, "PRESS START TO PLAY AGAIN", W // 2, H // 2 + 50, scale=1,
+                                color=(255, 255, 255))
             return
 
         screen.fill(BG_COLOR)
@@ -125,6 +213,8 @@ class Game:
         score_text = safe_render(f"SCORE: {self.player.score}", 20, (255, 255, 255))
         if score_text:
             screen.blit(score_text, (10, H - 20))
+        else:
+            draw_pixel_text(screen, f"SCORE: {self.player.score}", 40, H - 18, scale=1, color=(255, 255, 255))
 
         for i in range(self.player.lives):
             lx = W - 20 - i * 16
